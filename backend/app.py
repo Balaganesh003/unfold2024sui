@@ -1,105 +1,64 @@
 from flask import Flask, request, jsonify
-import pandas as pd
+import pickle
 import numpy as np
-import joblib
-from utils.summary_generator import generate_nlg_summary
+from flask_cors import CORS 
 
-# Import the preprocess_data function from utils
-from utils.data_processing import preprocess_data
 
 app = Flask(__name__)
 
-# Load the pre-trained reputation model
-model = joblib.load('./reputation_model.joblib')
+CORS(app)
 
+# Load the trained model and scaler
+with open('reputation_model.pkl', 'rb') as model_file:
+    model = pickle.load(model_file)
 
-# Function to get user data
-def get_user_data(wallet_address):
-    try:
-        # Example: Read from processed_data.csv
-        df = pd.read_csv('./data/processed_data.csv')
-        df = df.drop(columns=['governance_events'], errors='ignore')
-        # Simulate wallet-based filtering (replace with real implementation)
-        # For now, fetch the first record as placeholder
-        user_data = df.iloc[0].to_dict()  # Replace with wallet-based filtering logic
-        return user_data
-    except Exception as e:
-        print(f"Error fetching user data: {e}")
-        return None
+with open('scaler.pkl', 'rb') as scaler_file:
+    scaler = pickle.load(scaler_file)
 
+# Function to generate a summary based on input data
+def generate_summary(account_data):
+    accountAge,balance,noOfTransactions,numberOfContracts,totalVolume,uniqueCounterParties = account_data
+    return (
+        f"The account has been active for {accountAge} days, with a balance of ${balance}. "
+        f"Over the course of {noOfTransactions} transactions, it has developed {uniqueCounterParties} unique counterparties "
+        f"and entered into {numberOfContracts} contracts, with a total volume of ${totalVolume}. "
+        f"This indicates a stable and trustworthy account."
+    )
 
-# Route for predicting reputation
-# Route for predicting reputation
-@app.route('/predictReputation', methods=['POST'])
-def predict_reputation():
+# API endpoint to accept real-time data and return reputation score and summary
+@app.route('/update_data', methods=['POST'])
+def update_data():
     data = request.json
-    wallet_address = data.get('wallet_address')
-    if not wallet_address:
-        return jsonify({"error": "Wallet address is required"}), 400
-
-    user_data = get_user_data(wallet_address)
-    if not user_data:
-        return jsonify({"error": "User data not found"}), 404
-
-    # Define the expected model features
-    model_columns = ['num_transactions', 'total_volume', 'unique_counterparties',
-                     'num_contracts', 'average_transaction_value', 'account_age', 'missing_feature']
-    print(f"Expected model features: {model_columns}")
-
-    # Extract features and handle missing or NaN values
-    features = [
-        user_data.get("num_transactions", 0),
-        user_data.get("total_volume", 0),
-        user_data.get("unique_counterparties", 0),
-        user_data.get("num_contracts", 0),
-        user_data.get("average_transaction_value", 0),
-        user_data.get("account_age", 0),
-        user_data.get("missing_feature", 0)  # Replace with actual missing feature
+    
+    # Correctly extract fields from the object sent by the frontend
+    account_data = [
+        data.get('account_data', {}).get('accountAge', 0),
+        data.get('account_data', {}).get('balance', 0),
+        data.get('account_data', {}).get('noOfTransactions', 0),
+        data.get('account_data', {}).get('numberOfContracts', 0),
+        data.get('account_data', {}).get('totalVolume', 0),
+        data.get('account_data', {}).get('uniqueCounterParties', 0),
     ]
 
-    # Replace NaN with 0 explicitly
-    features = [0 if pd.isna(feature) else feature for feature in features]
-    print(f"Features being passed to the model: {features}")
+    # Validate the data
+    if len(account_data) != 6:
+        return jsonify({"error": "Input data must have exactly 6 features"}), 400
 
-    # Check for NaN values in features
-    if any(np.isnan(feature) for feature in features):
-        print("Error: Features still contain NaN values:", features)
-        return jsonify({"error": "Invalid feature data (contains NaN values)"}), 400
+    try:
+        # Scale the data and make predictions
+        scaled_data = scaler.transform([account_data])
+        reputation_score = model.predict(scaled_data)[0]
 
-    # Check if the number of features matches the model's expected input
-    if len(features) != len(model_columns):
-        print("Error: Feature count mismatch!")
-        return jsonify({"error": f"Expected {len(model_columns)} features, but got {len(features)}"}), 400
+        # Generate summary
+        summary = generate_summary(account_data)
 
-    # Predict reputation score using the model
-    reputation_score = model.predict(np.array(features).reshape(1, -1))[0]
-    return jsonify({"reputation_score": round(reputation_score, 2)})
+        return jsonify({
+            "reputation_score": float(reputation_score),
+            "summary": summary
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-
-# Route for generating summary
-@app.route('/generateSummary', methods=['POST'])
-def generate_summary():
-    data = request.json
-    wallet_address = data.get('wallet_address')
-    if not wallet_address:
-        return jsonify({"error": "Wallet address is required"}), 400
-
-    # Fetch and preprocess user data
-    user_data = get_user_data(wallet_address)
-    if not user_data:
-        return jsonify({"error": "User data not found"}), 404
-
-    # Add dummy values for additional fields
-    user_data['top_contracts'] = ['Contract A', 'Contract B']
-    user_data['peak_month'] = 'January'
-
-    # Generate the summary
-    summary = generate_nlg_summary(user_data)
-    return jsonify({"summary": summary})
-
-
-# Print all routes for debugging
-print(app.url_map)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run( port=5000)

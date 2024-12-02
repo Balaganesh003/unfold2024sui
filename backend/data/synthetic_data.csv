@@ -1,4 +1,0 @@
-num_transactions,total_volume,unique_counterparties,num_contracts,governance_events,average_transaction_value,account_age,reputation_score
-100,5000,10,5,2,50,365,8.5
-200,10000,20,10,5,50,730,9.2
-150,7500,15,7,3,50,600,8.8

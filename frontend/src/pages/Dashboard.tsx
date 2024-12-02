@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Navbar from '../components/Navbar';
 import FeatureCard from '../components/FeatureCard';
 import { FeatureButton } from '../components/FeatureButton';
 import { Globe, Lock, Smile, HandshakeIcon, Link, Layers } from 'lucide-react';
+import { useCurrentAccount } from '@mysten/dapp-kit';
 
 interface Feature {
   icon: JSX.Element;
@@ -17,7 +18,16 @@ interface Service {
   navigate: string;
 }
 
-export default function Dashboard(): JSX.Element {
+export default function Dashboard({ walletId, setWalletId }: { walletId: string, setWalletId: React.Dispatch<React.SetStateAction<string>> }): JSX.Element {
+  const account = useCurrentAccount();
+
+  useEffect(() => {
+    if (account) {
+      setWalletId(account.address);
+      console.log('Connected wallet:', walletId);
+    }
+  }, [account]);
+
   const features: Feature[] = [
     {
       icon: <Smile className="text-yellow-500" />,
@@ -39,7 +49,7 @@ export default function Dashboard(): JSX.Element {
     },
     {
       icon: <Globe className="text-blue-400" />,
-      title: 'Become Part of Web3',
+      title: 'Become Part of Sui',
       description:
         "Engage in the decentralized internet's economy to leverage its opportunities.",
     },
@@ -63,13 +73,18 @@ export default function Dashboard(): JSX.Element {
   ];
 
   return (
-    <div className="min-h-screen container bg-black text-white">
-      <Navbar />
-
-      <main className="container mx-auto px-12 pt-24">
+    <div className="min-h-screen bg-black text-white">
+      <div className="w-full">
+        <Navbar />
+      </div>
+      <main className="w-full max-w-[1080px] mx-auto px-4 md:px-4 pt-24">
+        <header>
+          <p className="text-gray-300 mt-2 text-xl">
+            Connected Wallet: {walletId || 'No wallet connected'}
+          </p>
+        </header>
         <section className="py-12">
           <h2 className="text-3xl font-bold mb-8">About</h2>
-
           <div className="grid gap-6 md:grid-cols-2">
             {features.map((feature, index) => (
               <FeatureCard
@@ -83,7 +98,6 @@ export default function Dashboard(): JSX.Element {
         </section>
         <section className="py-12">
           <h2 className="text-3xl font-bold mb-8">Our Services</h2>
-
           <div className="grid gap-6 md:grid-cols-2">
             {services.map((service, index) => (
               <FeatureButton

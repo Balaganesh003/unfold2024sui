@@ -1,12 +1,9 @@
-import { useNavigate } from "react-router";
 import { BadgeCheckIcon, SparklesIcon } from 'lucide-react';
 
 export default function Hero() {
 
-  const navigate = useNavigate();
-
   return (
-    <div className="min-h-screen overflow-hidden bg-[radial-gradient(100%_100%_at_50%_0,rgba(0,122,255,.7)_0,transparent_100%)] bg-black  text-white flex items-center">
+    <section className="min-h-screen overflow-hidden bg-[radial-gradient(100%_100%_at_50%_0,rgba(0,122,255,.7)_0,transparent_100%)] bg-black text-white flex items-center">
       <div className="container max-w-[1080px] mx-auto px-4 py-12 md:py-24 lg:py-32">
         <div className="grid gap-12 md:grid-cols-2 items-start">
           <div>
@@ -26,8 +23,8 @@ export default function Hero() {
               Utilized by BUIDLers to grow faster by engaging and incentivizing genuine contributors and early adopters
             </p>
 
-            <button
-              onClick={() => navigate('/dashboard')}
+            <a
+              href="/dashboard"
               className="group relative overflow-hidden border-2 border-gray-400 text-white
                  px-6 py-3 rounded-xl text-lg font-semibold 
                  transform transition-all duration-300 
@@ -45,10 +42,11 @@ export default function Hero() {
               <SparklesIcon className="text-white group-hover:rotate-12 transition-transform duration-300" />
               Check Your Reputation Score
               <BadgeCheckIcon className="text-white group-hover:-rotate-12 transition-transform duration-300" />
-            </button>
+            </a>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   )
 }
+

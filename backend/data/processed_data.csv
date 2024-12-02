@@ -1,4 +1,0 @@
-num_transactions,total_volume,unique_counterparties,num_contracts,governance_events,average_transaction_value,account_age
-100,5000,10,5,50,365
-200,10000,20,10,50,730
-150,7500,15,7,50,600
